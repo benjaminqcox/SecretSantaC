@@ -1,0 +1,11 @@
+.*
+!.gitignore
+
+*.a
+*.o
+*.out
+
+userInput
+main
+server
+client
