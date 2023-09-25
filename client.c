@@ -51,6 +51,38 @@ void addPerson(int sock) {
     // not sure if name needs to be freed here? as it will be used in the server
 }
 
+void drawNames(int sock, bool *draw_happened) {
+    // send menu option selected to server
+    int option = DRAW_NAMES;
+    if (send(sock, &option, sizeof(option), 0) < 0) {
+        perror("Send error");
+        return;
+    };
+    // receives confirmation of successful draw from server
+    bool drawSuccess;
+    if (recv(sock, &drawSuccess, sizeof(drawSuccess), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
+    // assign draw success boolean value to draw_happened
+    *draw_happened = drawSuccess;
+    // if draw happened, tell user that draw was successful, otherwise tell user it was not
+    if (drawSuccess) {
+        printf("Draw successful.\n");
+    } 
+    else {
+        printf("Draw unsuccessful: please try again with more participants?\n");
+    }
+}
+
+void findGiftee(int sock) {
+    // send menu option to server
+    // get user input from user for name of Santa
+    // send name to server
+    // receive from server name and id of the giftee for this Santa
+    // print info
+}
+
 int main(int argc, char const *argv[])
 {
     // create a socket
