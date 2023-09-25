@@ -36,19 +36,19 @@ void addPerson(int sock) {
     char name[64];
     strlcpy(name, newName, 64);
     // send name to server
-    if (send(sock, name, strlen(name), 0) < 0) {
+    if (send(sock, name, 64, 0) < 0) {
         perror("Send error");
         return;
     };
-    int personId;
+    int *personId = (int *)malloc(sizeof(int));
     // receives name and id of added person from server, as a confirmation
-    if (recv(sock, &personId, sizeof(personId), 0) < 0) {
+    if (recv(sock, personId, sizeof(personId), 0) < 0) {
         perror("Receive error");
         return;
     }
     // print person with id
-    printf("Person %s (ID: %d) has been successfully added.\n", name, personId);
-    
+    printf("Person %s (ID: %d) has been successfully added.\n", name, *personId);
+    free(personId);
     // not sure if name needs to be freed here? as it will be used in the server
 }
 
@@ -90,7 +90,7 @@ int main(int argc, char const *argv[])
     int sock, connection_result;
     struct sockaddr_in addr;
     socklen_t addr_size;
-    char buffer[1024];
+    char buffer[64];
     int n;
 
     // create a tcp socket

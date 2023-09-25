@@ -25,7 +25,7 @@ enum MenuSelection {
 };
 /* End of shared between server and client*/
 typedef struct {
-    unsigned char id;
+    int id;
     char name[NAME_SIZE];
 } person_t;
 
@@ -103,7 +103,7 @@ int main()
             printf("Server connected to client.\n");
             bool hasDrawn = false;
             person_t **participants;
-            unsigned char numParticipants = 0;
+            int numParticipants = 0;
             
             while (1)
             {
@@ -138,17 +138,16 @@ int main()
                         case ADD_PERSON:
                             // Var to store the name the client enters
                             // Server message to ask for name
-                            printf("Please enter the name of the participant: \n");
                             // Request name of person from client
                             recv(cl_sd, &name, NAME_SIZE, 0);
 
                             // Create a new participant
                             person_t *new_participant = (person_t *)malloc(sizeof(person_t));
                             // Check memory for the new participant has been allocated correctly
-                            if (new_participant)
+                            if (new_participant == NULL)
                             {
                                 // failed to allocate memory
-                                fprintf(stderr, "Failed to allocate memory\n");
+                                fprintf(stderr, "Failed to allocate memory 1\n");
                                 exit(EXIT_FAILURE);
                             }
                             new_participant->id = numParticipants; // If multithreading, will need to add a mutex lock to increment the id and add participants
@@ -161,15 +160,16 @@ int main()
                             if (participants == NULL)
                             {
                                 // failed to allocate memory
-                                fprintf(stderr, "Failed to allocate memory\n");
+                                fprintf(stderr, "Failed to allocate memory 2\n");
                                 exit(EXIT_FAILURE);
                             }
                             participants[numParticipants] = new_participant;
                             // Client has been succesfully added, increment the number of participants
                             numParticipants++;
-                            
+                            int sendingNum = numParticipants - 1;
                             // send id of participant back to client (need to verify)
-                            send(cl_sd, &participants[numParticipants-1]->id, sizeof(time_t), 0);
+                            printf("Participant Id: %d\n", (participants[numParticipants-1]->id));
+                            send(cl_sd, &sendingNum, sizeof(time_t), 0);
 
                             break;
                         case DRAW_NAMES:
