@@ -31,6 +31,7 @@ void addPerson(int sock) {
         return;
     };
     // get user input for name
+    printf("Please enter name of new participant here: \n");
     char *newName = getStringInput();
     char name[64];
     strlcpy(name, newName, 64);
@@ -86,7 +87,7 @@ void findGiftee(int sock) {
 int main(int argc, char const *argv[])
 {
     // create a socket
-    int sock;
+    int sock, connection_result;
     struct sockaddr_in addr;
     socklen_t addr_size;
     char buffer[1024];
@@ -100,14 +101,14 @@ int main(int argc, char const *argv[])
     }
     printf("[+] TCP server socket created.\n");
 
-    memset(&addr, '\0', sizeof(addr));
+    memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_port = SERVER_PORT;
+    addr.sin_port = htons(SERVER_PORT);
     // addr.sin_addr.s_addr = inet_addr(CONNECTION_ADDRESS);
     inet_pton(AF_INET, CONNECTION_ADDRESS, &addr.sin_addr);
 
     // Connect to server
-    int connection_result = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
+    connection_result = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
     if (connection_result == -1) {
         perror("[-] Connection error");
         exit(1);
@@ -119,65 +120,64 @@ int main(int argc, char const *argv[])
     char charMenuOption;
     int menuOption;
 
-    // for(;;) {
+    for(;;) {
     //     // first check if draw has happened
-    //     bool draw_happened;
-    //     recv(sock, &draw_happened, sizeof(draw_happened), 0);
-    //     if (draw_happened) // if it has happened, we want to show a different set of menu options
-    //     {
-    //         printf("Select your option:\n");
-    //         printf("[0] Disconnect from server:\n");
-    //         printf("[1] Find giftee by Santa:\n");
-    //         printf("[2] Find Santa by giftee:\n");
-    //         printf("[3] List all Santa/giftee pairs:\n");
-    //         fgets(&charMenuOption, MENU_OPTION_INPUT_SIZE, stdin);
-    //         menuOption = (int) charMenuOption;
+        bool draw_happened;
+        recv(sock, &draw_happened, sizeof(draw_happened), 0);
+        printf("%d\n", draw_happened);
+        if (draw_happened) // if it has happened, we want to show a different set of menu options
+        {
+            printf("Select your option:\n");
+            printf("[0] Disconnect from server:\n");
+            printf("[1] Find giftee by Santa:\n");
+            printf("[2] Find Santa by giftee:\n");
+            printf("[3] List all Santa/giftee pairs:\n");
+            menuOption = getIntInputInRange(0, 3);
 
-    //         switch (menuOption) {
-    //             case QUIT:
-    //                 printf("Disconnecting...");
-    //                 close(sock);
-    //                 printf("Disconnected from the server. Goodbye!\n");
-    //                 exit(0);
-    //                 break;
-    //             case FIND_GIFTEE:
+            switch (menuOption) {
+                case QUIT:
+                    printf("Disconnecting...");
+                    close(sock);
+                    printf("Disconnected from the server. Goodbye!\n");
+                    exit(0);
+                    break;
+                case FIND_GIFTEE:
 
-    //                 break;
-    //             case FIND_SANTA:
-    //                 break;
-    //             case LIST_PAIRS:
-    //                 break;
-    //             default:
-    //                 break;
-    //         }
-    //     }
-    //     else 
-    //     {
-    //         printf("Select your option:\n");
-    //         printf("[0] Disconnect from server:\n");
-    //         printf("[1] Add person:\n");
-    //         printf("[2] Secret Santa Draw:\n");
+                    break;
+                case FIND_SANTA:
+                    break;
+                case LIST_PAIRS:
+                    break;
+                default:
+                    break;
+            }
+        }
+        else 
+        {
+            printf("Select your option:\n");
+            printf("[0] Disconnect from server:\n");
+            printf("[1] Add person:\n");
+            printf("[2] Secret Santa Draw:\n");
 
-    //         fgets(&charMenuOption, MENU_OPTION_INPUT_SIZE, stdin);
-    //         menuOption = (int) charMenuOption;
-            
-    //         switch (menuOption) {
-    //             case QUIT:
-    //                 printf("Disconnecting...");
-    //                 close(sock);
-    //                 printf("Disconnected from the server. Goodbye!\n");
-    //                 exit(0);
-    //                 break;
-    //             case ADD_PERSON:
-    //                 addPerson(sock);
-    //                 break;
-    //             case DRAW_NAMES:
-    //                 break;
-    //             default:
-    //                 break;
-    //         }
-    //     }
-    // }
+            menuOption = getIntInputInRange(0, 2);
+            switch (menuOption) {
+                case QUIT:
+                    printf("Disconnecting...");
+                    close(sock);
+                    printf("Disconnected from the server. Goodbye!\n");
+                    exit(0);
+                    break;
+                case ADD_PERSON:
+                    printf("Adding person...\n");
+                    addPerson(sock);
+                    break;
+                case DRAW_NAMES:
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 
     close(sock);
     printf("Disconnected from the server.\n");
