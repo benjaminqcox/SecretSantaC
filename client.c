@@ -7,7 +7,6 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <stdbool.h>
-
 #include "userInput.h"
 
 #define CONNECTION_ADDRESS "127.0.0.1"
@@ -96,7 +95,7 @@ int main(int argc, char const *argv[])
     // create a tcp socket
     sock = socket(AF_INET, SOCK_STREAM, TCP_MODE);
     if (sock < 0) {
-        perror("[-]Socket error");
+        perror("[-]Socket error\n");
         exit(1);
     }
     printf("[+] TCP server socket created.\n");
