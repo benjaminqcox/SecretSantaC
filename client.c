@@ -23,31 +23,74 @@ enum MenuSelection {
 	DRAW_NAMES = 2
 };
 
+void addPerson(int sock) {
+    // send menu option selected to server
+    int option = ADD_PERSON;
+    if (send(sock, &option, sizeof(option), 0) < 0) {
+        perror("Send error");
+        return;
+    };
+    // get user input for name
+    printf("Please enter name of new participant here: \n");
+    char *newName = getStringInput();
+    char name[64];
+    strlcpy(name, newName, 64);
+    // send name to server
+    if (send(sock, name, 64, 0) < 0) {
+        perror("Send error");
+        return;
+    };
+    int *personId = (int *)malloc(sizeof(int));
+    // receives name and id of added person from server, as a confirmation
+    if (recv(sock, personId, sizeof(personId), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
+    // print person with id
+    printf("Person %s (ID: %d) has been successfully added.\n", name, *personId);
+    free(personId);
+    // not sure if name needs to be freed here? as it will be used in the server
+}
+
+void drawNames(int sock, bool *draw_happened) {
+    // send menu option selected to server
+    int option = DRAW_NAMES;
+    if (send(sock, &option, sizeof(option), 0) < 0) {
+        perror("Send error");
+        return;
+    };
+    // receives confirmation of successful draw from server
+    bool drawSuccess;
+    if (recv(sock, &drawSuccess, sizeof(drawSuccess), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
+    // assign draw success boolean value to draw_happened
+    *draw_happened = drawSuccess;
+    // if draw happened, tell user that draw was successful, otherwise tell user it was not
+    if (drawSuccess) {
+        printf("Draw successful.\n");
+    } 
+    else {
+        printf("Draw unsuccessful: please try again with more participants?\n");
+    }
+}
+
 void findGiftee(int sock) {
-    // Fill buffer with 0s
-    // bzero(buffer, 1024);
-    // strcpy(buffer, "Sending request to server.\n");
-    // printf("Client: %s\n", buffer);
-
-    // // Send message to server
-    // send(sock, buffer, strlen(buffer), 0);
-
-    // // Receive message from server (current time)
-    // bzero(buffer, 1024);
-    // recv(sock, buffer, sizeof(buffer), 0);
-    // printf("Server: %s", buffer);
-
-    // // wait for 5 minutes
-    // sleep(300); 
+    // send menu option to server
+    // get user input from user for name of Santa
+    // send name to server
+    // receive from server name and id of the giftee for this Santa
+    // print info
 }
 
 int main(int argc, char const *argv[])
 {
     // create a socket
-    int sock;
+    int sock, connection_result;
     struct sockaddr_in addr;
     socklen_t addr_size;
-    char buffer[1024];
+    char buffer[64];
     int n;
 
     // create a tcp socket
@@ -58,13 +101,14 @@ int main(int argc, char const *argv[])
     }
     printf("[+] TCP server socket created.\n");
 
-    memset(&addr, '\0', sizeof(addr));
+    memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_port = SERVER_PORT;
-    addr.sin_addr.s_addr = inet_addr(CONNECTION_ADDRESS);
+    addr.sin_port = htons(SERVER_PORT);
+    // addr.sin_addr.s_addr = inet_addr(CONNECTION_ADDRESS);
+    inet_pton(AF_INET, CONNECTION_ADDRESS, &addr.sin_addr);
 
     // Connect to server
-    int connection_result = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
+    connection_result = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
     if (connection_result == -1) {
         perror("[-] Connection error");
         exit(1);
@@ -77,9 +121,10 @@ int main(int argc, char const *argv[])
     int menuOption;
 
     for(;;) {
-        // first check if draw has happened
+    //     // first check if draw has happened
         bool draw_happened;
         recv(sock, &draw_happened, sizeof(draw_happened), 0);
+        printf("%d\n", draw_happened);
         if (draw_happened) // if it has happened, we want to show a different set of menu options
         {
             printf("Select your option:\n");
@@ -91,7 +136,7 @@ int main(int argc, char const *argv[])
 
             switch (menuOption) {
                 case QUIT:
-                    printf("Disconnecting...\n");
+                    printf("Disconnecting...");
                     close(sock);
                     printf("Disconnected from the server. Goodbye!\n");
                     exit(0);
@@ -115,15 +160,16 @@ int main(int argc, char const *argv[])
             printf("[2] Secret Santa Draw:\n");
 
             menuOption = getIntInputInRange(0, 2);
-            
             switch (menuOption) {
                 case QUIT:
-                    printf("Disconnecting...\n");
+                    printf("Disconnecting...");
                     close(sock);
                     printf("Disconnected from the server. Goodbye!\n");
                     exit(0);
                     break;
                 case ADD_PERSON:
+                    printf("Adding person...\n");
+                    addPerson(sock);
                     break;
                 case DRAW_NAMES:
                     break;
