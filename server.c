@@ -7,13 +7,14 @@
 #include <time.h>
 #include <stdbool.h>
 #include <stdlib.h>
-
+#include "userInput.h"
 
 /* Start of shared between server and client */
 #define CONNECTION_ADDRESS "127.0.0.1"
 #define SERVER_PORT 18000
 #define BACKLOG_SIZE 10
 #define TCP_MODE 0
+#define NAME_SIZE 64
 
 enum MenuSelection {
     FIND_GIFTEE = 1,
@@ -23,10 +24,9 @@ enum MenuSelection {
     DRAW_NAMES = 2
 };
 /* End of shared between server and client*/
-
 typedef struct {
     unsigned char id;
-    char *name;
+    char name[NAME_SIZE];
 } person_t;
 
 /*
@@ -102,12 +102,16 @@ int main()
             
             bool hasDrawn = false;
             person_t **participants;
+            unsigned char numParticipants = 0;
             
             while (1)
             {
+                // Send to client the result of hasDrawn
+                send(cl_sd, &hasDrawn, sizeof(hasDrawn), 0);
                 // While the client is connected wait initially for the selected menu option
                 // from the selected menu option, choose the case statement to enter
-                int menuChoice = ADD_PERSON;
+                int menuChoice; // Change this to the clients' response
+                recv(cl_sd, &menuChoice, sizeof(menuChoice), 0);
                 if (hasDrawn)
                 {
                     switch(menuChoice)
@@ -131,7 +135,42 @@ int main()
                     switch (menuChoice)
                     {
                         case ADD_PERSON:
-                            // do something
+                            // Var to store the name the client enters
+                            char name[NAME_SIZE];
+                            // Server message to ask for name
+                            printf("Please enter the name of the participant: ");
+                            // Request name of person from client
+                            recv(cl_sd, &name, NAME_SIZE, 0);
+
+                            // Create a new participant
+                            person_t *new_participant = (person_t *)malloc(sizeof(person_t));
+                            // Check memory for the new participant has been allocated correctly
+                            if (new_participant)
+                            {
+                                // failed to allocate memory
+                                fprintf(stderr, "Failed to allocate memory\n");
+                                exit(EXIT_FAILURE);
+                            }
+                            new_participant->id = numParticipants; // If multithreading, will need to add a mutex lock to increment the id and add participants
+                            // Add the user chosen name from the client to the new participant
+                            strlcpy(new_participant->name, name, NAME_SIZE);
+                            
+                            // Update the final participant (not numParticipants+1 as it is 0 indexed)
+                            participants = (person_t **)realloc(participants, (numParticipants + 1) * sizeof(person_t *));
+                            // Check memory for participants has been reallocated correctly
+                            if (participants == NULL)
+                            {
+                                // failed to allocate memory
+                                fprintf(stderr, "Failed to allocate memory\n");
+                                exit(EXIT_FAILURE);
+                            }
+                            participants[numParticipants] = new_participant;
+                            // Client has been succesfully added, increment the number of participants
+                            numParticipants++;
+                            
+                            // send id of participant back to client (need to verify)
+                            send(cl_sd, &participants[numParticipants-1]->id, sizeof(time_t), 0);
+
                             break;
                         case DRAW_NAMES:
                             // check enough names are in names array
