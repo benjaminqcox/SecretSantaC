@@ -171,6 +171,11 @@ int main()
                             printf("Participant Id: %d\n", (participants[numParticipants-1]->id));
                             send(cl_sd, &sendingNum, sizeof(time_t), 0);
 
+                            printf("Printing all participants: \n");
+                            for (int i = 0; i < numParticipants; i++) {
+                                printf("\tID: %d, Name: %s\n", participants[i]->id, participants[i]->name);
+                            }
+
                             break;
                         case DRAW_NAMES:
                             // check enough names are in names array
