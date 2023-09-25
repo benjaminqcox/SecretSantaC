@@ -8,6 +8,8 @@
 #include <netinet/in.h>
 #include <stdbool.h>
 
+#include "userInput.h"
+
 #define CONNECTION_ADDRESS "127.0.0.1"
 #define TCP_MODE 0 
 #define SERVER_PORT 18000
@@ -22,22 +24,31 @@ enum MenuSelection {
 	DRAW_NAMES = 2
 };
 
-void findGiftee(int sock) {
-    // Fill buffer with 0s
-    // bzero(buffer, 1024);
-    // strcpy(buffer, "Sending request to server.\n");
-    // printf("Client: %s\n", buffer);
-
-    // // Send message to server
-    // send(sock, buffer, strlen(buffer), 0);
-
-    // // Receive message from server (current time)
-    // bzero(buffer, 1024);
-    // recv(sock, buffer, sizeof(buffer), 0);
-    // printf("Server: %s", buffer);
-
-    // // wait for 5 minutes
-    // sleep(300); 
+void addPerson(int sock) {
+    // send menu option selected to server
+    int option = ADD_PERSON;
+    if (send(sock, &option, sizeof(option), 0) < 0) {
+        perror("Send error");
+        return;
+    };
+    // get user input for name
+    char *name = getStringInput();
+    
+    // send name to server
+    if (send(sock, name, strlen(name), 0) < 0) {
+        perror("Send error");
+        return;
+    };
+    int personId;
+    // receives name and id of added person from server, as a confirmation
+    if (recv(sock, &personId, sizeof(personId), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
+    // print person with id
+    printf("Person %s (ID: %d) has been successfully added.\n", name, personId);
+    
+    // not sure if name needs to be freed here? as it will be used in the server
 }
 
 int main(int argc, char const *argv[])
@@ -78,7 +89,7 @@ int main(int argc, char const *argv[])
     for(;;) {
         // first check if draw has happened
         bool draw_happened;
-        recv(sock, draw_happened, sizeof(draw_happened), 0);
+        recv(sock, &draw_happened, sizeof(draw_happened), 0);
         if (draw_happened) // if it has happened, we want to show a different set of menu options
         {
             printf("Select your option:\n");
@@ -87,7 +98,7 @@ int main(int argc, char const *argv[])
             printf("[2] Find Santa by giftee:\n");
             printf("[3] List all Santa/giftee pairs:\n");
             fgets(&charMenuOption, MENU_OPTION_INPUT_SIZE, stdin);
-            menuOption = strtol(charMenuOption, NULL, 10);
+            menuOption = (int) charMenuOption;
 
             switch (menuOption) {
                 case QUIT:
@@ -114,7 +125,8 @@ int main(int argc, char const *argv[])
             printf("[1] Add person:\n");
             printf("[2] Secret Santa Draw:\n");
 
-            fgets(&menuOption, MENU_OPTION_INPUT_SIZE, stdin);
+            fgets(&charMenuOption, MENU_OPTION_INPUT_SIZE, stdin);
+            menuOption = (int) charMenuOption;
             
             switch (menuOption) {
                 case QUIT:
@@ -124,6 +136,7 @@ int main(int argc, char const *argv[])
                     exit(0);
                     break;
                 case ADD_PERSON:
+                    addPerson(sock);
                     break;
                 case DRAW_NAMES:
                     break;
