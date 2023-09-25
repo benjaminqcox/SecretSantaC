@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <stdbool.h>
+#include "userInput.h"
 
 #define CONNECTION_ADDRESS "127.0.0.1"
 #define TCP_MODE 0 
@@ -52,7 +53,7 @@ int main(int argc, char const *argv[])
     // create a tcp socket
     sock = socket(AF_INET, SOCK_STREAM, TCP_MODE);
     if (sock < 0) {
-        perror("[-]Socket error");
+        perror("[-]Socket error\n");
         exit(1);
     }
     printf("[+] TCP server socket created.\n");
@@ -78,7 +79,7 @@ int main(int argc, char const *argv[])
     for(;;) {
         // first check if draw has happened
         bool draw_happened;
-        recv(sock, draw_happened, sizeof(draw_happened), 0);
+        recv(sock, &draw_happened, sizeof(draw_happened), 0);
         if (draw_happened) // if it has happened, we want to show a different set of menu options
         {
             printf("Select your option:\n");
@@ -86,12 +87,11 @@ int main(int argc, char const *argv[])
             printf("[1] Find giftee by Santa:\n");
             printf("[2] Find Santa by giftee:\n");
             printf("[3] List all Santa/giftee pairs:\n");
-            fgets(&charMenuOption, MENU_OPTION_INPUT_SIZE, stdin);
-            menuOption = strtol(charMenuOption, NULL, 10);
+            menuOption = getIntInputInRange(0, 3);
 
             switch (menuOption) {
                 case QUIT:
-                    printf("Disconnecting...");
+                    printf("Disconnecting...\n");
                     close(sock);
                     printf("Disconnected from the server. Goodbye!\n");
                     exit(0);
@@ -114,11 +114,11 @@ int main(int argc, char const *argv[])
             printf("[1] Add person:\n");
             printf("[2] Secret Santa Draw:\n");
 
-            fgets(&menuOption, MENU_OPTION_INPUT_SIZE, stdin);
+            menuOption = getIntInputInRange(0, 2);
             
             switch (menuOption) {
                 case QUIT:
-                    printf("Disconnecting...");
+                    printf("Disconnecting...\n");
                     close(sock);
                     printf("Disconnected from the server. Goodbye!\n");
                     exit(0);

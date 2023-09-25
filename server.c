@@ -52,7 +52,7 @@ int main()
 
     // The fix is to use child processes and the parent can deal with the connection and the children can deal with processing
 
-    
+    char name[NAME_SIZE];
     int ret, sd, cl_sd;
     struct sockaddr_in sv_addr, cl_addr;
     socklen_t addrlen = sizeof(cl_addr);
@@ -81,7 +81,7 @@ int main()
     }
 
     // Print port listening on
-    printf("Server is listening at %d:%d...\n", CONNECTION_ADDRESS, SERVER_PORT);
+    printf("Server is listening at %s:%d...\n", CONNECTION_ADDRESS, SERVER_PORT);
 
     while (1)
     {
@@ -94,13 +94,14 @@ int main()
             perror("accept");
             continue;
         }
+        printf("connected\n");
         
         if (fork() == 0)
         {
             // Close the connection to the main socket from the client and just use the client connection socket
             close(sd);
-            
-            bool hasDrawn = false;
+            printf("Server connected to client.\n");
+            bool hasDrawn = true;
             person_t **participants;
             unsigned char numParticipants = 0;
             
@@ -136,7 +137,6 @@ int main()
                     {
                         case ADD_PERSON:
                             // Var to store the name the client enters
-                            char name[NAME_SIZE];
                             // Server message to ask for name
                             printf("Please enter the name of the participant: ");
                             // Request name of person from client
