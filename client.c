@@ -1,27 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <stdbool.h>
-#include "userInput.h"
-
-#define CONNECTION_ADDRESS "127.0.0.1"
-#define TCP_MODE 0 
-#define SERVER_PORT 18000
-#define MENU_OPTION_INPUT_SIZE 5
-
-enum MenuSelection {
-	QUIT = 0,
-	FIND_GIFTEE = 1,
-	FIND_SANTA = 2,
-	LIST_PAIRS = 3,
-	ADD_PERSON = 1,
-	DRAW_NAMES = 2
-};
+#include "shared.h"
 
 void addPerson(int sock) {
     // send menu option selected to server
@@ -33,10 +10,12 @@ void addPerson(int sock) {
     // get user input for name
     printf("Please enter name of new participant here: \n");
     char *newName = getStringInput();
-    char name[64];
+    char name[NAME_SIZE];
+
     strlcpy(name, newName, 64);
     // send name to server
-    if (send(sock, name, 64, 0) < 0) {
+    int len = NAME_SIZE;
+    if (sendall(sock, name, &len) < 0) {
         perror("Send error");
         return;
     };
@@ -78,10 +57,116 @@ void drawNames(int sock, bool *draw_happened) {
 
 void findGiftee(int sock) {
     // send menu option to server
+    int option = FIND_GIFTEE;
+    if (send(sock, &option, sizeof(option), 0) < 0) {
+        perror("Send error");
+        return;
+    };
     // get user input from user for name of Santa
+    printf("Please enter name of Santa: \n");
+    char *newName = getStringInput();
+    char name[64];
+    strlcpy(name, newName, 64);
     // send name to server
+    int len = NAME_SIZE;
+    if (sendall(sock, name, &len) < 0) {
+        perror("Send error");
+        return;
+    };
     // receive from server name and id of the giftee for this Santa
+    char gifteeName[64];
+    // receives name and id of person from server, as a confirmation
+    if (recv(sock, gifteeName, sizeof(gifteeName), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
+    int *gifteeId = (int *)malloc(sizeof(int));
+    if (recv(sock, gifteeId, sizeof(gifteeId), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
     // print info
+    printf("Santa: %s - Giftee: %s, ID: %d", name, gifteeName, *gifteeId);
+    free(gifteeId);
+}
+
+
+void findSanta(int sock) {
+    // send menu option to server
+    int option = FIND_SANTA;
+    if (send(sock, &option, sizeof(option), 0) < 0) {
+        perror("Send error");
+        return;
+    };
+    // get user input from user for name of Giftee
+    printf("Please enter name of Giftee: \n");
+    char *newName = getStringInput();
+    char name[64];
+    strlcpy(name, newName, 64);
+    int len = NAME_SIZE;
+    // send name to server
+    if (sendall(sock, name, &len) < 0) {
+        perror("Send error");
+        return;
+    };
+    // receive from server name and id of the Santa for this giftee
+    char santaName[64];
+    // receives name and id of person from server, as a confirmation
+    if (recv(sock, santaName, sizeof(santaName), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
+    int *santaId = (int *)malloc(sizeof(int));
+    if (recv(sock, santaId, sizeof(santaId), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
+    // print info
+    printf("Santa: %s - Giftee: %s, ID: %d", name, santaName, *santaId);
+    free(santaId);
+}
+
+void listPairs(int sock) {
+    // send menu option to server
+    int option = LIST_PAIRS;
+    if (send(sock, &option, sizeof(option), 0) < 0) {
+        perror("Send error");
+        return;
+    };
+    // first receive from server number of participants
+    int *numOfParticipants = (int *)malloc(sizeof(int));
+    if (recv(sock, numOfParticipants, sizeof(numOfParticipants), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
+    // for i = 0; i < numOfParticipants; i++
+    for (int i = 0 ; i < (*numOfParticipants) ; i++) {
+        // receive from server the name and id of each participant
+        char santaName[64];
+        if (recv(sock, santaName, sizeof(santaName), 0) < 0) {
+            perror("Receive error");
+            return;
+        }
+        int *santaId = (int *)malloc(sizeof(int));
+        if (recv(sock, santaId, sizeof(santaId), 0) < 0) {
+            perror("Receive error");
+            return;
+        }
+        char gifteeName[64];
+        if (recv(sock, gifteeName, sizeof(gifteeName), 0) < 0) {
+            perror("Receive error");
+            return;
+        }
+        int *gifteeId = (int *)malloc(sizeof(int));
+        if (recv(sock, gifteeId, sizeof(gifteeId), 0) < 0) {
+            perror("Receive error");
+            return;
+        }
+        printf("Santa ID: %d, Name: %s ; Giftee ID: %d, Name: %s\n", *santaId, santaName, *gifteeId, gifteeName);
+    }
+    // print name and id of each particpant as the Santa, and the next person in the list as their giftee
+    // if on person at last index, print the person at index 0 as their giftee
+    // (the above logic is handled in the server)
 }
 
 int main(int argc, char const *argv[])
@@ -142,13 +227,19 @@ int main(int argc, char const *argv[])
                     exit(0);
                     break;
                 case FIND_GIFTEE:
-
+                    printf("Finding giftee...\n");
+                    listPairs(sock);
                     break;
                 case FIND_SANTA:
+                    printf("Finding Santa...\n");
+                    listPairs(sock);
                     break;
                 case LIST_PAIRS:
+                    printf("Listing pairs...\n");
+                    listPairs(sock);
                     break;
                 default:
+                    printf("Invalid input: Please select a valid option between 0 and 3.\n");
                     break;
             }
         }
@@ -172,8 +263,16 @@ int main(int argc, char const *argv[])
                     addPerson(sock);
                     break;
                 case DRAW_NAMES:
+                    printf("Secret Santa Draw commencing...\n");
+                    drawNames(sock, &draw_happened);
+                    if (draw_happened) {
+                        printf("Draw successful!\n");
+                    } else {
+                        printf("Draw unsuccessful.\n");
+                    }
                     break;
                 default:
+                    printf("Invalid input: Please select a valid option between 0 and 2.\n");
                     break;
             }
         }

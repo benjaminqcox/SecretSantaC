@@ -1,33 +1,4 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <time.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include "userInput.h"
-
-/* Start of shared between server and client */
-#define CONNECTION_ADDRESS "127.0.0.1"
-#define SERVER_PORT 18000
-#define BACKLOG_SIZE 10
-#define TCP_MODE 0
-#define NAME_SIZE 64
-
-enum MenuSelection {
-    FIND_GIFTEE = 1,
-    FIND_SANTA = 2,
-    LIST_PAIRS = 3,
-    ADD_PERSON = 1,
-    DRAW_NAMES = 2
-};
-/* End of shared between server and client*/
-typedef struct {
-    int id;
-    char name[NAME_SIZE];
-} person_t;
+#include "shared.h"
 
 /*
 // Struct format
