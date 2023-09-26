@@ -159,7 +159,8 @@ int main()
                                 fprintf(stderr, "Failed to allocate memory for temporary participant\n");
                                 exit(EXIT_FAILURE);
                             }
-
+                            // Send the number of participants in the participants array to the client
+                            send(cl_sd, &numParticipants, sizeof(int *), 0);
                             for (int i = numParticipants-1; i > 0; i--) { // for loop to shuffle
                                 j = rand() % (i + 1); //randomise j for shuffle with Fisher Yates
                                 tmp = participants[j];
