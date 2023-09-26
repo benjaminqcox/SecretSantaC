@@ -1,3 +1,4 @@
+#include <time.h>
 #include "shared.h"
 
 /*
@@ -29,6 +30,7 @@ int main()
     socklen_t addrlen = sizeof(cl_addr);
     ssize_t sent_bytes;
     bool active_client = false;
+    time_t t;
 
     // Create socket
     sd = socket(AF_INET, SOCK_STREAM, TCP_MODE);
@@ -149,8 +151,23 @@ int main()
 
                             break;
                         case DRAW_NAMES:
+                            srand((unsigned) time(&t));
+                            int j;
+                            person_t *tmp;
+
+                            for (int i = numParticipants-1; i > 0; i--) { // for loop to shuffle
+                                j = rand() % (i + 1); //randomise j for shuffle with Fisher Yates
+                                tmp = participants[j];
+                                participants[j] = participants[i];
+                                participants[i] = tmp;
+                            }
+                            for (int i = 0; i < numParticipants; i++)
+                            {
+                                printf("%d: %d - %s\n", i, participants[i]->id, participants[i]->name);
+                            }
                             // check enough names are in names array
                             // do something
+                            send(cl_sd, &hasDrawn, sizeof(hasDrawn), 0);
                             break;
                         default:
                             printf("Invalid selection\n");
