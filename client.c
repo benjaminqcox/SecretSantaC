@@ -38,6 +38,11 @@ void drawNames(int sock, bool *draw_happened) {
         perror("Send error");
         return;
     };
+    int numParticipants;
+    if (recv(sock, &numParticipants, sizeof(numParticipants), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
     // receives confirmation of successful draw from server
     bool drawSuccess;
     if (recv(sock, &drawSuccess, sizeof(drawSuccess), 0) < 0) {
@@ -52,6 +57,17 @@ void drawNames(int sock, bool *draw_happened) {
     } 
     else {
         printf("Draw unsuccessful: please try again with more participants?\n");
+    }
+    person_t *participant = (person_t *)malloc(sizeof(person_t));
+    if (participant == NULL) {
+        perror("Out of memory.");
+    }
+    for (int i = 0; i < numParticipants ; i++) {
+        if (recv(sock, participant, sizeof(participant), 0) < 0) {
+            perror("Receive error");
+            return;
+        }
+        printf("ID: %d, %s\n", participant->id, participant->name);
     }
 }
 
