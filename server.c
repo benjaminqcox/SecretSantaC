@@ -160,7 +160,7 @@ int main()
                                 exit(EXIT_FAILURE);
                             }
                             // Send the number of participants in the participants array to the client
-                            send(cl_sd, &numParticipants, sizeof(int *), 0);
+                            send(cl_sd, &numParticipants, sizeof(numParticipants), 0);
                             for (int i = numParticipants-1; i > 0; i--) { // for loop to shuffle
                                 j = rand() % (i + 1); //randomise j for shuffle with Fisher Yates
                                 tmp = participants[j];
@@ -168,10 +168,12 @@ int main()
                                 participants[i] = tmp;
                             }
                             printAll(numParticipants, participants);
-                            send(cl_sd, participants, sizeof(participants), 0);
+                            send(cl_sd, &hasDrawn, sizeof(hasDrawn), 0);
+                            for (int i = 0 ; i < numParticipants ; i++) {
+                                send(cl_sd, participants[i], sizeof(participants[i]), 0);
+                            }
                             // check enough names are in names array
                             // do something
-                            send(cl_sd, &hasDrawn, sizeof(hasDrawn), 0);
                             break;
                         default:
                             printf("Invalid selection\n");
