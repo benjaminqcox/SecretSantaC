@@ -1,27 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <stdbool.h>
-#include "userInput.h"
-
-#define CONNECTION_ADDRESS "127.0.0.1"
-#define TCP_MODE 0 
-#define SERVER_PORT 18000
-#define MENU_OPTION_INPUT_SIZE 5
-
-enum MenuSelection {
-	QUIT = 0,
-	FIND_GIFTEE = 1,
-	FIND_SANTA = 2,
-	LIST_PAIRS = 3,
-	ADD_PERSON = 1,
-	DRAW_NAMES = 2
-};
+#include "shared.h"
 
 void addPerson(int sock) {
     // send menu option selected to server
@@ -33,10 +10,12 @@ void addPerson(int sock) {
     // get user input for name
     printf("Please enter name of new participant here: \n");
     char *newName = getStringInput();
-    char name[64];
+    char name[NAME_SIZE];
+
     strlcpy(name, newName, 64);
     // send name to server
-    if (send(sock, name, 64, 0) < 0) {
+    int len = NAME_SIZE;
+    if (sendall(sock, name, &len) < 0) {
         perror("Send error");
         return;
     };
@@ -89,7 +68,8 @@ void findGiftee(int sock) {
     char name[64];
     strlcpy(name, newName, 64);
     // send name to server
-    if (send(sock, name, 64, 0) < 0) {
+    int len = NAME_SIZE;
+    if (sendall(sock, name, &len) < 0) {
         perror("Send error");
         return;
     };
@@ -123,8 +103,9 @@ void findSanta(int sock) {
     char *newName = getStringInput();
     char name[64];
     strlcpy(name, newName, 64);
+    int len = NAME_SIZE;
     // send name to server
-    if (send(sock, name, 64, 0) < 0) {
+    if (sendall(sock, name, &len) < 0) {
         perror("Send error");
         return;
     };
