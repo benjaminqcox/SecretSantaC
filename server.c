@@ -143,9 +143,7 @@ int main()
                             send(cl_sd, &sendingNum, sizeof(time_t), 0);
 
                             printf("Printing all participants: \n");
-                            for (int i = 0; i < numParticipants; i++) {
-                                printf("\tID: %d, Name: %s\n", participants[i]->id, participants[i]->name);
-                            }
+                            printAll(numParticipants, participants);
 
                             break;
                         case DRAW_NAMES:
