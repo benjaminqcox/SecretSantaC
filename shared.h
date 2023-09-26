@@ -49,3 +49,9 @@ int sendall(int s, char *buf, int *len)
     return n == -1 ? -1 : 0;
 }
 
+void printAll(int numParticipants, person_t **participants) 
+{
+    for (int i = 0; i < numParticipants; i++) {
+        printf("\tID: %d, Name: %s\n", participants[i]->id, participants[i]->name);
+    }
+}
