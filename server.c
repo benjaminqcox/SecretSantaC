@@ -151,7 +151,14 @@ int main()
                         case DRAW_NAMES:
                             srand((unsigned) time(&t));
                             int j;
-                            person_t *tmp;
+                            // Assign memory to temp participant for the shuffle (draw)
+                            person_t *tmp = (person_t *)malloc(sizeof(person_t));
+                            // Check memory has been assigned correctly
+                            if (tmp == NULL)
+                            {
+                                fprintf(stderr, "Failed to allocate memory for temporary participant\n");
+                                exit(EXIT_FAILURE);
+                            }
 
                             for (int i = numParticipants-1; i > 0; i--) { // for loop to shuffle
                                 j = rand() % (i + 1); //randomise j for shuffle with Fisher Yates
@@ -159,10 +166,8 @@ int main()
                                 participants[j] = participants[i];
                                 participants[i] = tmp;
                             }
-                            for (int i = 0; i < numParticipants; i++)
-                            {
-                                printf("%d: %d - %s\n", i, participants[i]->id, participants[i]->name);
-                            }
+                            printAll(numParticipants, participants);
+                            send(cl_sd, participants, sizeof(participants), 0);
                             // check enough names are in names array
                             // do something
                             send(cl_sd, &hasDrawn, sizeof(hasDrawn), 0);
