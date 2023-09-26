@@ -16,6 +16,44 @@ struct in_addr {
 };
 */
 
+person_t *findGifteeBySantaId(int id, person_t **participants, int numParticipants)
+{
+    for (int i = 0; i < numParticipants; i++)
+    {
+        if (participants[i]->id == id)
+        {
+            if (i == numParticipants)
+            {
+                return participants[0];
+            }
+            else
+            {
+                return participants[i+1];
+            }
+        }
+    }
+    return NULL;
+}
+
+person_t *findSantaByGifteeId(int id, person_t **participants, int numParticipants)
+{
+    for (int i = 0; i < numParticipants; i++)
+    {
+        if (participants[i]->id == id)
+        {
+            if(i == 0)
+            {
+                return participants[numParticipants];
+            }
+            else
+            {
+                return participants[i-1];
+            }
+        }
+    }
+    return NULL;
+}
+
 int main()
 {
     // This is for when the client disconnects, it causes a broken pipe which terminates the entire program (this is only when I am not using child processes)
@@ -91,13 +129,23 @@ int main()
                     switch(menuChoice)
                     {
                         case FIND_GIFTEE:
-                            // do something
+                            int chosenId;
+                            recv(cl_sd, &chosenId, sizeof(chosenId), 0);
+                            person_t *foundGiftee = findGifteeBySantaId(chosenId, participants, numParticipants);
+                            send(cl_sd, foundGiftee, sizeof(foundGiftee), 0);
                             break;
                         case FIND_SANTA:
-                            // do something
+                            int chosenId;
+                            recv(cl_sd, &chosenId, sizeof(chosenId), 0);
+                            person_t *foundSanta = findSantaByGifteeId(chosenId, participants, numParticipants);
+                            send(cl_sd, foundSanta, sizeof(foundSanta), 0);
                             break;
                         case LIST_PAIRS:
-                            // do something
+                            send(cl_sd, &numParticipants, sizeof(numParticipants), 0);
+                            for (int i = 0 ; i < numParticipants ; i++)
+                            {
+                                send(cl_sd, participants[i], sizeof(participants[i]), 0);
+                            }
                             break;
                         default:
                             printf("Invalid selection");
@@ -149,7 +197,14 @@ int main()
 
                             break;
                         case DRAW_NAMES:
+                            if (numParticipants < 4)
+                            {
+                                send(cl_sd, &hasDrawn, sizeof(hasDrawn), 0);
+                                break;
+                            }
+                            // Setup the random nuber generator based on the time
                             srand((unsigned) time(&t));
+                            // Declare j to store the result of the random number generator
                             int j;
                             // Assign memory to temp participant for the shuffle (draw)
                             person_t *tmp = (person_t *)malloc(sizeof(person_t));
@@ -167,13 +222,16 @@ int main()
                                 participants[j] = participants[i];
                                 participants[i] = tmp;
                             }
+                            // Participants have been drawn
+                            hasDrawn = true;
+                            // Print all randomised participants (testing only)
                             printAll(numParticipants, participants);
+                            // Send that the draw has happened to the client
                             send(cl_sd, &hasDrawn, sizeof(hasDrawn), 0);
+                            // Send all participants to the client 1 by 1
                             for (int i = 0 ; i < numParticipants ; i++) {
                                 send(cl_sd, participants[i], sizeof(participants[i]), 0);
                             }
-                            // check enough names are in names array
-                            // do something
                             break;
                         default:
                             printf("Invalid selection\n");
