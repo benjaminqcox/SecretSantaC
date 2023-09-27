@@ -15,6 +15,7 @@
 #define BACKLOG_SIZE 10
 #define TCP_MODE 0
 #define NAME_SIZE 64
+#define MIN_PARTICIPANTS 4
 
 enum MenuSelection {
     QUIT = 0,
@@ -53,5 +54,14 @@ void printAll(int numParticipants, person_t **participants)
 {
     for (int i = 0; i < numParticipants; i++) {
         printf("\tID: %d, Name: %s\n", participants[i]->id, participants[i]->name);
+    }
+}
+
+void freeParticipants(person_t **participants, int num_participants)
+{
+    // Loop through and free all participants
+    for (int i = 0; i < num_participants; i++)
+    {
+        free(participants[i]);
     }
 }
