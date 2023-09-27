@@ -22,7 +22,7 @@ person_t *findGifteeBySantaId(int id, person_t **participants, int numParticipan
     {
         if (participants[i]->id == id)
         {
-            if (i == numParticipants)
+            if (i == numParticipants - 1)
             {
                 return participants[0];
             }
@@ -43,7 +43,7 @@ person_t *findSantaByGifteeId(int id, person_t **participants, int numParticipan
         {
             if(i == 0)
             {
-                return participants[numParticipants];
+                return participants[numParticipants - 1];
             }
             else
             {
@@ -115,6 +115,8 @@ int main()
             bool hasDrawn = false;
             person_t **participants;
             int numParticipants = 0;
+            int santaId;    
+            int gifteeId;
             
             while (1)
             {
@@ -129,22 +131,22 @@ int main()
                     switch(menuChoice)
                     {
                         case FIND_GIFTEE:
-                            int chosenId;
-                            recv(cl_sd, &chosenId, sizeof(chosenId), 0);
-                            person_t *foundGiftee = findGifteeBySantaId(chosenId, participants, numParticipants);
-                            send(cl_sd, foundGiftee, sizeof(foundGiftee), 0);
+                            send(cl_sd, &numParticipants, sizeof(numParticipants), 0);
+                            recv(cl_sd, &santaId, sizeof(santaId), 0);
+                            person_t *foundGiftee = findGifteeBySantaId(santaId, participants, numParticipants);
+                            send(cl_sd, foundGiftee, sizeof(person_t), 0);
                             break;
                         case FIND_SANTA:
-                            int chosenId;
-                            recv(cl_sd, &chosenId, sizeof(chosenId), 0);
-                            person_t *foundSanta = findSantaByGifteeId(chosenId, participants, numParticipants);
-                            send(cl_sd, foundSanta, sizeof(foundSanta), 0);
+                            send(cl_sd, &numParticipants, sizeof(numParticipants), 0);
+                            recv(cl_sd, &gifteeId, sizeof(gifteeId), 0);
+                            person_t *foundSanta = findSantaByGifteeId(gifteeId, participants, numParticipants);
+                            send(cl_sd, foundSanta, sizeof(person_t), 0);
                             break;
                         case LIST_PAIRS:
                             send(cl_sd, &numParticipants, sizeof(numParticipants), 0);
                             for (int i = 0 ; i < numParticipants ; i++)
                             {
-                                send(cl_sd, participants[i], sizeof(participants[i]), 0);
+                                send(cl_sd, participants[i], sizeof(person_t), 0);
                             }
                             break;
                         default:
@@ -230,7 +232,7 @@ int main()
                             send(cl_sd, &hasDrawn, sizeof(hasDrawn), 0);
                             // Send all participants to the client 1 by 1
                             for (int i = 0 ; i < numParticipants ; i++) {
-                                send(cl_sd, participants[i], sizeof(participants[i]), 0);
+                                send(cl_sd, participants[i], sizeof(person_t), 0);
                             }
                             break;
                         default:

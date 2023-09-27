@@ -63,7 +63,7 @@ void drawNames(int sock, bool *draw_happened) {
         perror("Out of memory.");
     }
     for (int i = 0; i < numParticipants ; i++) {
-        if (recv(sock, participant, sizeof(participant), 0) < 0) {
+        if (recv(sock, participant, sizeof(person_t), 0) < 0) {
             perror("Receive error");
             return;
         }
@@ -78,32 +78,29 @@ void findGiftee(int sock) {
         perror("Send error");
         return;
     };
-    // get user input from user for name of Santa
-    printf("Please enter name of Santa: \n");
-    char *newName = getStringInput();
-    char name[64];
-    strlcpy(name, newName, 64);
-    // send name to server
-    int len = NAME_SIZE;
-    if (sendall(sock, name, &len) < 0) {
-        perror("Send error");
-        return;
-    };
-    // receive from server name and id of the giftee for this Santa
-    char gifteeName[64];
-    // receives name and id of person from server, as a confirmation
-    if (recv(sock, gifteeName, sizeof(gifteeName), 0) < 0) {
+    int numParticipants;
+    if (recv(sock, &numParticipants, sizeof(numParticipants), 0) < 0) {
         perror("Receive error");
         return;
     }
-    int *gifteeId = (int *)malloc(sizeof(int));
-    if (recv(sock, gifteeId, sizeof(gifteeId), 0) < 0) {
+    // get user input from user for name of Santa
+    printf("Please enter ID of Santa: \n");
+    int santaId = getIntInputInRange(0, numParticipants - 1);
+    if (send(sock, &santaId, sizeof(santaId), 0) < 0) {
+        perror("Send error");
+        return;
+    };
+    person_t *giftee = (person_t *)malloc(sizeof(person_t));
+    if (giftee == NULL) {
+        perror("Out of memory.");
+    }
+    if (recv(sock, giftee, sizeof(person_t), 0) < 0) {
         perror("Receive error");
         return;
     }
     // print info
-    printf("Santa: %s - Giftee: %s, ID: %d", name, gifteeName, *gifteeId);
-    free(gifteeId);
+    printf("Santa ID: %d - Giftee: %s, ID: %d\n", santaId, giftee->name, giftee->id);
+    free(giftee);
 }
 
 
@@ -114,32 +111,29 @@ void findSanta(int sock) {
         perror("Send error");
         return;
     };
-    // get user input from user for name of Giftee
-    printf("Please enter name of Giftee: \n");
-    char *newName = getStringInput();
-    char name[64];
-    strlcpy(name, newName, 64);
-    int len = NAME_SIZE;
-    // send name to server
-    if (sendall(sock, name, &len) < 0) {
-        perror("Send error");
-        return;
-    };
-    // receive from server name and id of the Santa for this giftee
-    char santaName[64];
-    // receives name and id of person from server, as a confirmation
-    if (recv(sock, santaName, sizeof(santaName), 0) < 0) {
+    int numParticipants;
+    if (recv(sock, &numParticipants, sizeof(numParticipants), 0) < 0) {
         perror("Receive error");
         return;
     }
-    int *santaId = (int *)malloc(sizeof(int));
-    if (recv(sock, santaId, sizeof(santaId), 0) < 0) {
+    // get user input from user for name of Santa
+    printf("Please enter ID of Giftee: \n");
+    int gifteeId = getIntInputInRange(0, numParticipants - 1);
+    if (send(sock, &gifteeId, sizeof(gifteeId), 0) < 0) {
+        perror("Send error");
+        return;
+    };
+    person_t *santa = (person_t *)malloc(sizeof(person_t));
+    if (santa == NULL) {
+        perror("Out of memory.");
+    }
+    if (recv(sock, santa, sizeof(person_t), 0) < 0) {
         perror("Receive error");
         return;
     }
     // print info
-    printf("Santa: %s - Giftee: %s, ID: %d", name, santaName, *santaId);
-    free(santaId);
+    printf("Giftee ID: %d - Santa: %s, ID: %d\n", gifteeId, santa->name, santa->id);
+    free(santa);
 }
 
 void listPairs(int sock) {
@@ -150,39 +144,43 @@ void listPairs(int sock) {
         return;
     };
     // first receive from server number of participants
-    int *numOfParticipants = (int *)malloc(sizeof(int));
-    if (recv(sock, numOfParticipants, sizeof(numOfParticipants), 0) < 0) {
+    int numOfParticipants;
+    if (recv(sock, &numOfParticipants, sizeof(numOfParticipants), 0) < 0) {
         perror("Receive error");
         return;
     }
-    // for i = 0; i < numOfParticipants; i++
-    for (int i = 0 ; i < (*numOfParticipants) ; i++) {
-        // receive from server the name and id of each participant
-        char santaName[64];
-        if (recv(sock, santaName, sizeof(santaName), 0) < 0) {
-            perror("Receive error");
-            return;
-        }
-        int *santaId = (int *)malloc(sizeof(int));
-        if (recv(sock, santaId, sizeof(santaId), 0) < 0) {
-            perror("Receive error");
-            return;
-        }
-        char gifteeName[64];
-        if (recv(sock, gifteeName, sizeof(gifteeName), 0) < 0) {
-            perror("Receive error");
-            return;
-        }
-        int *gifteeId = (int *)malloc(sizeof(int));
-        if (recv(sock, gifteeId, sizeof(gifteeId), 0) < 0) {
-            perror("Receive error");
-            return;
-        }
-        printf("Santa ID: %d, Name: %s ; Giftee ID: %d, Name: %s\n", *santaId, santaName, *gifteeId, gifteeName);
+    person_t **participants = (person_t **)malloc(sizeof(person_t *) * numOfParticipants);
+    if (participants == NULL) {
+        perror("Out of memory\n");
+        exit(EXIT_FAILURE);
     }
+    for (int i = 0; i < numOfParticipants ; i++) {
+        participants[i] = (person_t *)malloc(sizeof(person_t));
+        if (participants[i] == NULL) {
+            perror("Out of memory\n");
+            exit(EXIT_FAILURE);
+        }
+        // null check maloc
+        if (recv(sock, participants[i], sizeof(person_t), 0) < 0) {
+            perror("Receive error");
+            return;
+        }
+    }
+    for (int i = 0; i < numOfParticipants ; i++) {
+        if (i != numOfParticipants - 1) {
+            printf("Santa ID: %d, Name: %s - Giftee ID: %d, Name: %s\n", participants[i]->id, participants[i]->name, participants[i+1]->id, participants[i+1]->name);
+        }
+        else {
+            printf("Santa ID: %d, Name: %s - Giftee ID: %d, Name: %s\n", participants[i]->id, participants[i]->name, participants[0]->id, participants[0]->name);
+        }
+    }    
     // print name and id of each particpant as the Santa, and the next person in the list as their giftee
     // if on person at last index, print the person at index 0 as their giftee
     // (the above logic is handled in the server)
+    for (int i = 0; i < numOfParticipants ; i++) {
+        free(participants[i]);
+    }
+    free(participants);
 }
 
 int main(int argc, char const *argv[])
@@ -244,11 +242,11 @@ int main(int argc, char const *argv[])
                     break;
                 case FIND_GIFTEE:
                     printf("Finding giftee...\n");
-                    listPairs(sock);
+                    findGiftee(sock);
                     break;
                 case FIND_SANTA:
                     printf("Finding Santa...\n");
-                    listPairs(sock);
+                    findSanta(sock);
                     break;
                 case LIST_PAIRS:
                     printf("Listing pairs...\n");
