@@ -16,78 +16,205 @@ struct in_addr {
 };
 */
 
-person_t *findParticpantById(int id, person_t **participants, int numParticipants)
+person_t *findParticpantById(int id, person_t **participants, int num_participants)
 {
-    for (int i = 0; i < numParticipants; i++)
+    // Go through each participant in participants
+    // if the id of the current participant matches the chosen id, return that participant
+    for (int i = 0; i < num_participants; i++)
     {
         if (participants[i]->id == id)
         {
             return participants[i];
         }
     }
+    // No participant found, return NULL
     return NULL;
 }
 
 
-person_t *findGifteeBySantaId(int id, person_t **participants, int numParticipants)
+person_t *findGifteeBySantaId(int id, person_t **participants, int num_participants)
 {
-    for (int i = 0; i < numParticipants; i++)
+    // Loop through each participant in participants
+    for (int i = 0; i < num_participants; i++)
     {
+        // if the id of the current participant matches the chosen id
         if (participants[i]->id == id)
         {
-            if (i == numParticipants - 1)
+            
+            if (i == num_participants - 1)
             {
+                // if the current participant is the final participant, the giftee is the first particpant
                 return participants[0];
             }
             else
             {
+                // the giftee is the next participant
                 return participants[i+1];
             }
         }
     }
+    // No participant found with that id
     return NULL;
 }
 
-person_t *findSantaByGifteeId(int id, person_t **participants, int numParticipants)
+person_t *findSantaByGifteeId(int id, person_t **participants, int num_participants)
 {
-    for (int i = 0; i < numParticipants; i++)
+    // Loop through each participant in participants
+    for (int i = 0; i < num_participants; i++)
     {
+        // if the id of the current participant matches the chosen id
         if (participants[i]->id == id)
         {
             if(i == 0)
             {
-                return participants[numParticipants - 1];
+                // if the current participant is the first participant, the santa is the last participant
+                return participants[num_participants - 1];
             }
             else
             {
+                // the santa is the previous participant
                 return participants[i-1];
             }
         }
     }
+    // No participant found with that id
     return NULL;
+}
+
+void findGiftee(int cl_sd, person_t **participants, int num_participants)
+{
+    // Declare variable to store the giftee id received from client
+    int santaId;
+    // Send the number of participants to the client
+    send(cl_sd, &num_participants, sizeof(num_participants), 0);
+    // Recieve the chosen santa id and store it in the santa id variable
+    recv(cl_sd, &santaId, sizeof(santaId), 0);
+    // Store the participant found with the chosen id
+    person_t *santa = findParticpantById(santaId, participants, num_participants);
+    // Send the found participant to the client (used for clean output)
+    send(cl_sd, santa, sizeof(person_t), 0);
+    // Store the found giftee for the chosen giftee id
+    person_t *foundGiftee = findGifteeBySantaId(santaId, participants, num_participants);
+    // Send the found giftee to the client
+    send(cl_sd, foundGiftee, sizeof(person_t), 0);
+}
+
+void findSanta(int cl_sd, person_t **participants, int num_participants)
+{
+    // Declare variable to store the giftee id received from client
+    int gifteeId;
+    // Send the number of participants to the client
+    send(cl_sd, &num_participants, sizeof(num_participants), 0);
+    // Recieve the chosen giftee id and store it in the giftee id variable
+    recv(cl_sd, &gifteeId, sizeof(gifteeId), 0);
+    // Store the participant found with the chosen id
+    person_t *giftee = findParticpantById(gifteeId, participants, num_participants);
+    // Send the found participant to the client (used for clean output)
+    send(cl_sd, giftee, sizeof(person_t), 0);
+    // Store the found santa for the chosen giftee id
+    person_t *foundSanta = findSantaByGifteeId(gifteeId, participants, num_participants);
+    // Send the found santa to the client
+    send(cl_sd, foundSanta, sizeof(person_t), 0);
+}
+
+void listPairs(int cl_sd, person_t **participants, int num_participants)
+{
+    // Send the number of participants to the client
+    send(cl_sd, &num_participants, sizeof(num_participants), 0);
+    // Loop through all participants sending them to the client 1 by 1
+    for (int i = 0 ; i < num_participants ; i++)
+    {
+        send(cl_sd, participants[i], sizeof(person_t), 0);
+    }
+}
+
+void addPerson(int cl_sd, person_t ***participants, int *num_participants)
+{
+    char name[NAME_SIZE];
+    recv(cl_sd, &name, NAME_SIZE, 0);
+
+    // Create a new participant
+    person_t *new_participant = (person_t *)malloc(sizeof(person_t));
+    // Check memory for the new participant has been allocated correctly
+    if (new_participant == NULL)
+    {
+        // failed to allocate memory
+        fprintf(stderr, "Failed to allocate memory 1\n");
+        exit(EXIT_FAILURE);
+    }
+    new_participant->id = *num_participants; // If multithreading, will need to add a mutex lock to increment the id and add participants
+    // Add the user chosen name from the client to the new participant
+    strlcpy(new_participant->name, name, NAME_SIZE);
+    
+    // Update the final participant (not num_participants+1 as it is 0 indexed)
+    *participants = (person_t **)realloc(*participants, ((*num_participants) + 1) * sizeof(person_t *));
+    // Check memory for participants has been reallocated correctly
+    if (participants == NULL)
+    {
+        // failed to allocate memory
+        fprintf(stderr, "Failed to allocate memory 2\n");
+        exit(EXIT_FAILURE);
+    }
+    (*participants)[*num_participants] = new_participant;
+    // Client has been succesfully added, increment the number of participants
+    int sendingNum = *num_participants;
+    (*num_participants)++;
+    // Send the number of participants to the client
+    send(cl_sd, &sendingNum, sizeof(time_t), 0);
+}
+
+void drawNames(int cl_sd, person_t **participants, int num_participants, bool *has_drawn)
+{
+    time_t t;
+    // Send the result of has_drawn to the client if the number of participants is less than the minimum num participants
+    if (num_participants < MIN_PARTICIPANTS)
+    {
+        send(cl_sd, has_drawn, sizeof(*has_drawn), 0);
+        return;
+    }
+    // Setup the random nuber generator based on the time
+    srand((unsigned) time(&t));
+    // Declare j to store the result of the random number generator
+    int j;
+    // Assign memory to temp participant for the shuffle (draw)
+    person_t *tmp = (person_t *)malloc(sizeof(person_t));
+    // Check memory has been assigned correctly
+    if (tmp == NULL)
+    {
+        fprintf(stderr, "Failed to allocate memory for temporary participant\n");
+        exit(EXIT_FAILURE);
+    }
+    // Shuffle the participants
+    for (int i = num_participants-1; i > 0; i--) {
+        // Generate a random number for the shuffle
+        j = rand() % (i + 1);
+        tmp = participants[j];
+        participants[j] = participants[i];
+        participants[i] = tmp;
+    }
+    // Participants have been drawn
+    *has_drawn = true;
+    // Send that the draw has happened to the client
+    send(cl_sd, has_drawn, sizeof(*has_drawn), 0);
 }
 
 int main()
 {
-    // This is for when the client disconnects, it causes a broken pipe which terminates the entire program (this is only when I am not using child processes)
-    // This is happening because the server is sleeping for 5 seconds and the client is not waiting for the result of its final request before disconnecting
-    //signal(SIGPIPE, SIG_IGN);
-
-    // The fix is to use child processes and the parent can deal with the connection and the children can deal with processing
-
-    char name[NAME_SIZE];
+    // Declare the variables needed to store connection based information
     int ret, sd, cl_sd;
     struct sockaddr_in sv_addr, cl_addr;
     socklen_t addrlen = sizeof(cl_addr);
     ssize_t sent_bytes;
     bool active_client = false;
-    time_t t;
 
     // Create socket
     sd = socket(AF_INET, SOCK_STREAM, TCP_MODE);
     // Check successful socket creation
-
-    // Create address
+    if (sd < 0)
+    {
+        perror("socket");
+        exit(EXIT_FAILURE);
+    }
     memset(&sv_addr, 0, sizeof(sv_addr)); // sets the first count bytes of dest to the value c
     sv_addr.sin_family = AF_INET; // set the sockadress transport address to AF_INET (Address Family InterNET)
     sv_addr.sin_port = htons(SERVER_PORT); // converts unsigned short integer (hostshort) from host byte order to netword byte order
@@ -125,46 +252,38 @@ int main()
             // Close the connection to the main socket from the client and just use the client connection socket
             close(sd);
             printf("Server connected to client.\n");
-            bool hasDrawn = false;
-            person_t **participants;
-            int numParticipants = 0;
-            int santaId;    
+            // Declare secret santa based variables
+            char name[NAME_SIZE];
+            bool has_drawn = false;
+            person_t **participants = NULL;
+            int num_participants = 0;
+              
             int gifteeId;
             
             while (1)
             {
-                // Send to client the result of hasDrawn
-                send(cl_sd, &hasDrawn, sizeof(hasDrawn), 0);
-                // While the client is connected wait initially for the selected menu option
-                // from the selected menu option, choose the case statement to enter
-                int menuChoice; // Change this to the clients' response
+                // Send to client the result of has_drawn
+                send(cl_sd, &has_drawn, sizeof(has_drawn), 0);
+                int menuChoice;
+                // Get the menuChoice from the client
                 recv(cl_sd, &menuChoice, sizeof(menuChoice), 0);
-                if (hasDrawn)
+                if (menuChoice == QUIT)
+                {
+                    printf("Client has closed the connection\n");
+                    continue;
+                }
+                if (has_drawn)
                 {
                     switch(menuChoice)
                     {
                         case FIND_GIFTEE:
-                            send(cl_sd, &numParticipants, sizeof(numParticipants), 0);
-                            recv(cl_sd, &santaId, sizeof(santaId), 0);
-                            person_t *santa = findParticpantById(santaId, participants, numParticipants);
-                            send(cl_sd, santa, sizeof(person_t), 0);
-                            person_t *foundGiftee = findGifteeBySantaId(santaId, participants, numParticipants);
-                            send(cl_sd, foundGiftee, sizeof(person_t), 0);
+                            findGiftee(cl_sd, participants, num_participants);
                             break;
                         case FIND_SANTA:
-                            send(cl_sd, &numParticipants, sizeof(numParticipants), 0);
-                            recv(cl_sd, &gifteeId, sizeof(gifteeId), 0);
-                            person_t *giftee = findParticpantById(gifteeId, participants, numParticipants);
-                            send(cl_sd, giftee, sizeof(person_t), 0);
-                            person_t *foundSanta = findSantaByGifteeId(gifteeId, participants, numParticipants);
-                            send(cl_sd, foundSanta, sizeof(person_t), 0);
+                            findSanta(cl_sd, participants, num_participants);
                             break;
                         case LIST_PAIRS:
-                            send(cl_sd, &numParticipants, sizeof(numParticipants), 0);
-                            for (int i = 0 ; i < numParticipants ; i++)
-                            {
-                                send(cl_sd, participants[i], sizeof(person_t), 0);
-                            }
+                            listPairs(cl_sd, participants, num_participants);
                             break;
                         default:
                             printf("Invalid selection");
@@ -176,81 +295,10 @@ int main()
                     switch (menuChoice)
                     {
                         case ADD_PERSON:
-                            // Var to store the name the client enters
-                            // Server message to ask for name
-                            // Request name of person from client
-                            recv(cl_sd, &name, NAME_SIZE, 0);
-
-                            // Create a new participant
-                            person_t *new_participant = (person_t *)malloc(sizeof(person_t));
-                            // Check memory for the new participant has been allocated correctly
-                            if (new_participant == NULL)
-                            {
-                                // failed to allocate memory
-                                fprintf(stderr, "Failed to allocate memory 1\n");
-                                exit(EXIT_FAILURE);
-                            }
-                            new_participant->id = numParticipants; // If multithreading, will need to add a mutex lock to increment the id and add participants
-                            // Add the user chosen name from the client to the new participant
-                            strlcpy(new_participant->name, name, NAME_SIZE);
-                            
-                            // Update the final participant (not numParticipants+1 as it is 0 indexed)
-                            participants = (person_t **)realloc(participants, (numParticipants + 1) * sizeof(person_t *));
-                            // Check memory for participants has been reallocated correctly
-                            if (participants == NULL)
-                            {
-                                // failed to allocate memory
-                                fprintf(stderr, "Failed to allocate memory 2\n");
-                                exit(EXIT_FAILURE);
-                            }
-                            participants[numParticipants] = new_participant;
-                            // Client has been succesfully added, increment the number of participants
-                            numParticipants++;
-                            int sendingNum = numParticipants - 1;
-                            // send id of participant back to client (need to verify)
-                            printf("Participant Id: %d\n", (participants[numParticipants-1]->id));
-                            send(cl_sd, &sendingNum, sizeof(time_t), 0);
-
-                            printf("Printing all participants: \n");
-                            printAll(numParticipants, participants);
-
+                            addPerson(cl_sd, &participants, &num_participants);
                             break;
                         case DRAW_NAMES:
-                            if (numParticipants < 4)
-                            {
-                                send(cl_sd, &hasDrawn, sizeof(hasDrawn), 0);
-                                break;
-                            }
-                            // Setup the random nuber generator based on the time
-                            srand((unsigned) time(&t));
-                            // Declare j to store the result of the random number generator
-                            int j;
-                            // Assign memory to temp participant for the shuffle (draw)
-                            person_t *tmp = (person_t *)malloc(sizeof(person_t));
-                            // Check memory has been assigned correctly
-                            if (tmp == NULL)
-                            {
-                                fprintf(stderr, "Failed to allocate memory for temporary participant\n");
-                                exit(EXIT_FAILURE);
-                            }
-                            // Send the number of participants in the participants array to the client
-                            send(cl_sd, &numParticipants, sizeof(numParticipants), 0);
-                            for (int i = numParticipants-1; i > 0; i--) { // for loop to shuffle
-                                j = rand() % (i + 1); //randomise j for shuffle with Fisher Yates
-                                tmp = participants[j];
-                                participants[j] = participants[i];
-                                participants[i] = tmp;
-                            }
-                            // Participants have been drawn
-                            hasDrawn = true;
-                            // Print all randomised participants (testing only)
-                            printAll(numParticipants, participants);
-                            // Send that the draw has happened to the client
-                            send(cl_sd, &hasDrawn, sizeof(hasDrawn), 0);
-                            // Send all participants to the client 1 by 1
-                            for (int i = 0 ; i < numParticipants ; i++) {
-                                send(cl_sd, participants[i], sizeof(person_t), 0);
-                            }
+                            drawNames(cl_sd, participants, num_participants, &has_drawn);
                             break;
                         default:
                             printf("Invalid selection\n");
@@ -260,6 +308,11 @@ int main()
                 
 
             }
+            // Free all used memory
+            freeParticipants(participants, num_participants);
+            free(participants);
+            
+            // Close child socket connection and exit child
             close(cl_sd);
             exit(EXIT_SUCCESS);
         }
