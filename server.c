@@ -97,6 +97,7 @@ void findGiftee(int cl_sd, person_t **participants, int num_participants)
     person_t *foundGiftee = findGifteeBySantaId(santaId, participants, num_participants);
     // Send the found giftee to the client
     send(cl_sd, foundGiftee, sizeof(person_t), 0);
+    printf("Giftee found.\n");
 }
 
 void findSanta(int cl_sd, person_t **participants, int num_participants)
@@ -115,6 +116,7 @@ void findSanta(int cl_sd, person_t **participants, int num_participants)
     person_t *foundSanta = findSantaByGifteeId(gifteeId, participants, num_participants);
     // Send the found santa to the client
     send(cl_sd, foundSanta, sizeof(person_t), 0);
+    printf("Santa found.\n");
 }
 
 void listPairs(int cl_sd, person_t **participants, int num_participants)
@@ -126,6 +128,7 @@ void listPairs(int cl_sd, person_t **participants, int num_participants)
     {
         send(cl_sd, participants[i], sizeof(person_t), 0);
     }
+    printf("Pairs listed.\n");
 }
 
 void addPerson(int cl_sd, person_t ***participants, int *num_participants)
@@ -161,6 +164,7 @@ void addPerson(int cl_sd, person_t ***participants, int *num_participants)
     (*num_participants)++;
     // Send the number of participants to the client
     send(cl_sd, &sendingNum, sizeof(time_t), 0);
+    printf("Participant added.\n");
 }
 
 void drawNames(int cl_sd, person_t **participants, int num_participants, bool *has_drawn)
@@ -196,6 +200,7 @@ void drawNames(int cl_sd, person_t **participants, int num_participants, bool *h
     *has_drawn = true;
     // Send that the draw has happened to the client
     send(cl_sd, has_drawn, sizeof(*has_drawn), 0);
+    printf("Names drawn.\n");
 }
 
 int main()
@@ -245,7 +250,6 @@ int main()
             perror("accept");
             continue;
         }
-        printf("connected\n");
         
         if (fork() == 0)
         {
@@ -253,24 +257,27 @@ int main()
             close(sd);
             printf("Server connected to client.\n");
             // Declare secret santa based variables
-            char name[NAME_SIZE];
             bool has_drawn = false;
             person_t **participants = NULL;
             int num_participants = 0;
-              
-            int gifteeId;
-            
+            int menuChoice;
+
             while (1)
             {
                 // Send to client the result of has_drawn
-                send(cl_sd, &has_drawn, sizeof(has_drawn), 0);
-                int menuChoice;
+                if (send(cl_sd, &has_drawn, sizeof(has_drawn), 0) < 0) {
+                    perror("Send\n");
+                    exit(EXIT_FAILURE);
+                }
                 // Get the menuChoice from the client
-                recv(cl_sd, &menuChoice, sizeof(menuChoice), 0);
+                if (recv(cl_sd, &menuChoice, sizeof(menuChoice), 0) < 0) {
+                    perror("Receive\n");
+                    exit(EXIT_FAILURE);
+                }
                 if (menuChoice == QUIT)
                 {
                     printf("Client has closed the connection\n");
-                    continue;
+                    exit(EXIT_SUCCESS);
                 }
                 if (has_drawn)
                 {
@@ -311,6 +318,7 @@ int main()
             // Free all used memory
             freeParticipants(participants, num_participants);
             free(participants);
+            participants = NULL;
             
             // Close child socket connection and exit child
             close(cl_sd);
