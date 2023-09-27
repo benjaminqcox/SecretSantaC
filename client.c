@@ -1,4 +1,5 @@
 #include "shared.h"
+#include "userInput.h"
 
 // Add Participant to Secret Santa
 void addPerson(int sock) {
@@ -28,6 +29,7 @@ void addPerson(int sock) {
     // print person with id
     printf("Person %s (ID: %d) has been successfully added.\n", name, *personId);
     free(personId);
+    personId = NULL;
     // not sure if name needs to be freed here? as it will be used in the server
 }
 
@@ -98,7 +100,9 @@ void findGiftee(int sock) {
     // print info in readable format, displaying name and ID of Santa and their giftee
     printf("Santa ID: %d, name: %s - Giftee ID: %d, name: %s\n", santa->id, santa->name, giftee->id, giftee->name);
     free(santa);
+    santa = NULL;
     free(giftee);
+    giftee = NULL;
 }
 
 // Find the Santa of a specified giftee
@@ -142,8 +146,10 @@ void findSanta(int sock) {
     }
     // print info in readable format, displaying name and ID of giftee and their santa
     printf("Giftee ID: %d, name: %s - Santa ID: %d, name: %s\n", giftee->id, giftee->name, santa->id, santa->name);
-    free(giftee);
     free(santa);
+    santa = NULL;
+    free(giftee);
+    giftee = NULL;
 }
 
 // List all Santa/Giftee pairs
@@ -192,11 +198,9 @@ void listPairs(int sock) {
         }
     }    
     // free participants
-    for (int i = 0; i < numOfParticipants ; i++) {
-        // free each element of participants array
-        free(participants[i]);
-    }
-    free(participants);
+    freeParticipants(participants, numOfParticipants); // function loops through array and frees each element
+    free(participants); // free array head
+    participants = NULL;
 }
 
 // Quit program and close socket
@@ -272,20 +276,24 @@ int main(int argc, char const *argv[])
                     // finding giftee function
                     printf("Finding giftee...\n");
                     findGiftee(sock);
+                    separator();
                     break;
                 case FIND_SANTA:
                     // finding santa function 
                     printf("Finding Santa...\n");
                     findSanta(sock);
+                    separator();
                     break;
                 case LIST_PAIRS:
                     // listing pairs function
                     printf("Listing pairs...\n");
                     listPairs(sock);
+                    separator();
                     break;
                 default:
                     // if no valid option was selected, inform the user of that
                     printf("Invalid input: Please select a valid option between 0 and 3.\n");
+                    separator();
                     break;
             }
         }
@@ -304,21 +312,25 @@ int main(int argc, char const *argv[])
                     // close the socket and disconnect from server, and exit program
                     printf("Disconnecting...");
                     quitProgram(sock);
+                    separator();
                     exit(0);
                     break;
                 case ADD_PERSON:
                     // add participant function
                     printf("Adding person...\n");
                     addPerson(sock);
+                    separator();
                     break;
                 case DRAW_NAMES:
                     // draw names
                     printf("Secret Santa Draw commencing...\n");
                     drawNames(sock, &draw_happened);
+                    separator();
                     break;
                 default:
                     // if no valid option was selected, inform the user of that
                     printf("Invalid input: Please select a valid option between 0 and 2.\n");
+                    separator();
                     break;
             }
         }
