@@ -90,6 +90,16 @@ void findGiftee(int sock) {
         perror("Send error");
         return;
     };
+
+    person_t *santa = (person_t *)malloc(sizeof(person_t));
+    if (santa == NULL) {
+        perror("Out of memory.");
+    }
+    if (recv(sock, santa, sizeof(person_t), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
+    
     person_t *giftee = (person_t *)malloc(sizeof(person_t));
     if (giftee == NULL) {
         perror("Out of memory.");
@@ -99,7 +109,8 @@ void findGiftee(int sock) {
         return;
     }
     // print info
-    printf("Santa ID: %d - Giftee: %s, ID: %d\n", santaId, giftee->name, giftee->id);
+    printf("Santa ID: %d, name: %s - Giftee ID: %d, name: %s\n", santa->id, santa->name, giftee->id, giftee->name);
+    free(santa);
     free(giftee);
 }
 
@@ -123,6 +134,16 @@ void findSanta(int sock) {
         perror("Send error");
         return;
     };
+
+    person_t *giftee = (person_t *)malloc(sizeof(person_t));
+    if (giftee == NULL) {
+        perror("Out of memory.");
+    }
+    if (recv(sock, giftee, sizeof(person_t), 0) < 0) {
+        perror("Receive error");
+        return;
+    }
+
     person_t *santa = (person_t *)malloc(sizeof(person_t));
     if (santa == NULL) {
         perror("Out of memory.");
@@ -132,7 +153,8 @@ void findSanta(int sock) {
         return;
     }
     // print info
-    printf("Giftee ID: %d - Santa: %s, ID: %d\n", gifteeId, santa->name, santa->id);
+    printf("Giftee ID: %d, name: %s - Santa ID: %d, name: %s\n", giftee->id, giftee->name, santa->id, santa->name);
+    free(giftee);
     free(santa);
 }
 
