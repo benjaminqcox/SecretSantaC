@@ -29,6 +29,7 @@ char * getStringInput()
         len = strlen(buf);
         last = len - 1;
     } while (!feof(stdin) && buf[last] != '\n');
+    buf[strcspn(buf, "\n")] = 0;
     return buf;
 }
 
