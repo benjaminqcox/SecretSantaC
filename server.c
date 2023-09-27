@@ -16,6 +16,19 @@ struct in_addr {
 };
 */
 
+person_t *findParticpantById(int id, person_t **participants, int numParticipants)
+{
+    for (int i = 0; i < numParticipants; i++)
+    {
+        if (participants[i]->id == id)
+        {
+            return participants[i];
+        }
+    }
+    return NULL;
+}
+
+
 person_t *findGifteeBySantaId(int id, person_t **participants, int numParticipants)
 {
     for (int i = 0; i < numParticipants; i++)
@@ -133,12 +146,16 @@ int main()
                         case FIND_GIFTEE:
                             send(cl_sd, &numParticipants, sizeof(numParticipants), 0);
                             recv(cl_sd, &santaId, sizeof(santaId), 0);
+                            person_t *santa = findParticpantById(santaId, participants, numParticipants);
+                            send(cl_sd, santa, sizeof(person_t), 0);
                             person_t *foundGiftee = findGifteeBySantaId(santaId, participants, numParticipants);
                             send(cl_sd, foundGiftee, sizeof(person_t), 0);
                             break;
                         case FIND_SANTA:
                             send(cl_sd, &numParticipants, sizeof(numParticipants), 0);
                             recv(cl_sd, &gifteeId, sizeof(gifteeId), 0);
+                            person_t *giftee = findParticpantById(gifteeId, participants, numParticipants);
+                            send(cl_sd, giftee, sizeof(person_t), 0);
                             person_t *foundSanta = findSantaByGifteeId(gifteeId, participants, numParticipants);
                             send(cl_sd, foundSanta, sizeof(person_t), 0);
                             break;
